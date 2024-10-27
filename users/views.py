@@ -9,7 +9,7 @@ from rest_framework.decorators import authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.authentication import TokenAuthentication
 from django.db import transaction
-from .models import UsersDetails
+
 
 @api_view(['POST'])
 def login(request):
