@@ -10,12 +10,12 @@ class TreatmentsSerializer(serializers.ModelSerializer):
 class MedicineTreatmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = MedicineTreatment
-        fields = '__all__'
-
+        fields = ['dosis', 'presentation', 'unit']  # NO incluyas 'id_treatment'
+        
 class HealingTreatmentSerializer(serializers.ModelSerializer):
     class Meta:
         model = HealingTreatment
-        fields = '__all__'
+        fields = ['video', 'image']  # NO incluyas 'id_treatment'
 
 
 class DailyTreatmentSerializer(serializers.ModelSerializer):
