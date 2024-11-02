@@ -10,4 +10,4 @@ class UsersDetails(models.Model):
     user_role = models.CharField(max_length=10, choices=[('NURSE', 'Nurse'), ('PATIENT', 'Patient')])
     ci = models.CharField(max_length=20)
     profile_image = models.ImageField(upload_to='miniatura/', blank=True)
-    addres = models.TextField(max_length=256)
+    address = models.TextField(max_length=256)
