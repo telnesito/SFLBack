@@ -1,62 +1,44 @@
 from django.shortcuts import render
 from rest_framework.decorators import api_view
 from .serializers import TreatmentsSerializer, DailyTreatmentSerializer, MedicineTreatmentSerializer, HealingTreatmentSerializer
-from .models import DailyTreatment
 from rest_framework.response import Response
-from django.utils import timezone
 from django.db import transaction
+from .services.create_daily_treatments import create_daily_treatments
+from .services.handle_treatment import handle_treatment
+from rest_framework import status
+
+serializers_map = {
+    'MEDICINE': MedicineTreatmentSerializer,
+    'HEALINGS': HealingTreatmentSerializer
+    }
 
 @api_view(['POST'])
 @transaction.atomic
 def create_treatment(req):
-    serializer = TreatmentsSerializer(data=req.data)
-    medicine_serializer = MedicineTreatmentSerializer(data=req.data)
-    healing_serializer = HealingTreatmentSerializer(data=req.data)
-
-    
-    # Valida el tratamiento
-    if serializer.is_valid():
-        # Guarda el tratamiento y obtiene la instancia creada
-        treatment = serializer.save()
-
-        # Valida y guarda dependiendo del tipo de tratamiento
-        if treatment.treatments_type == 'MEDICINE':
-            if medicine_serializer.is_valid():
-                medicine_serializer.save(id_treatment=treatment)
-            else:
-                return Response({"medicine_errors": medicine_serializer.errors})
-
-        elif treatment.treatments_type == 'HEALINGS':
-            if healing_serializer.is_valid():
-                healing_serializer.save(id_treatment=treatment)
-            else:
-                return Response({"healing_errors": healing_serializer.errors})
         
-        #Hacer esto una funcion
-        # Calcula el rango de fechas
-        start_date = treatment.start_date
-        end_date = treatment.end_date
+    serializer = TreatmentsSerializer(data=req.data)
 
-        # Crea DailyTreatments por cada día en el rango
-        current_date = start_date
-        while current_date <= end_date:
-            DailyTreatment.objects.create(
-                id_treatment=treatment,
-                date=current_date
-            )
-            current_date += timezone.timedelta(days=1)  # Avanza un día
-
-        # Filtra los daily_treatments después de crear
-        daily_treatments = DailyTreatment.objects.filter(id_treatment=treatment)
-
-        return Response({
+    if serializer.is_valid():
+        treatment = serializer.save()
+        # Response data es un obj donde se construye la respuesta del metodo
+        response_data = {
             "treatment": serializer.data,
-            "medicine": medicine_serializer.data if medicine_serializer.is_valid() else None,
-            "healing": healing_serializer.data if healing_serializer.is_valid() else None,
-            'daily_treatments': DailyTreatmentSerializer(daily_treatments, many=True).data
-        })
+            "daily_treatments": []
+        }
 
-    return Response({
-        "treatment_errors": serializer.errors
-    })
+        #Creamos los daily_treatments en base al treatments
+        daily_treatments = create_daily_treatments(treatment)
+        # Lo agregamos a response data
+        response_data['daily_treatments'] = DailyTreatmentSerializer(daily_treatments, many=True).data
+        
+        #Obtenemos el treatment_type que mando el usuario
+        treatment_type = treatment.treatments_type
+        # Obtenemos el treatment.type de map
+        treatment_type_serializer = serializers_map.get(treatment_type)
+        # Si el usuario mando un treatment.type valido, entonces agregamos los demas campos al response
+        if treatment_type_serializer:
+            return handle_treatment(req, treatment, response_data, treatment_type_serializer)
+              
+
+    return Response({"error": serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
