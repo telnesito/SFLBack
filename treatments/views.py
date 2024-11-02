@@ -4,8 +4,10 @@ from .serializers import TreatmentsSerializer, DailyTreatmentSerializer, Medicin
 from .models import DailyTreatment
 from rest_framework.response import Response
 from django.utils import timezone
+from django.db import transaction
 
 @api_view(['POST'])
+@transaction.atomic
 def create_treatment(req):
     serializer = TreatmentsSerializer(data=req.data)
     medicine_serializer = MedicineTreatmentSerializer(data=req.data)
@@ -58,33 +60,3 @@ def create_treatment(req):
         "treatment_errors": serializer.errors
     })
 
-# @transaction.atomic()
-# @api_view(['POST'])
-# def register(request):
-#     serializer = UserSerializer(data=request.data)
-#     detailsSerializer = UserDetailsSerializer(data=request.data)
-#     if(serializer.is_valid() & detailsSerializer.is_valid()):
-#         # Se agrega el registro a la base de datos
-#         serializer.save()
-        
-#         # Buscamos el usuario y le asignamos la clave
-#         user = User.objects.get(username=serializer.data['username'])
-#         user.set_password(serializer.data['password'])
-#         user.save()
-        
-#         # Le asignamos el user al modelo detailsUser
-#         detailsSerializer.save(user=user)
-        
-#         # Token de registro
-#         token = Token.objects.create(user=user)
-
-#         return Response({
-#             'token':token.key, 
-#             'user':serializer.data,
-#             'details':detailsSerializer.data
-#         }, 
-#         status=status.HTTP_201_CREATED)
-#     return Response({
-#         'user':serializer.errors,
-#         'details':detailsSerializer.errors
-#         },status=status.HTTP_400_BAD_REQUEST)
